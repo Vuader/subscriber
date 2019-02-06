@@ -1,0 +1,94 @@
+server tradius {
+
+	listen {
+		type = auth
+		ipaddr = *
+		port = 0
+		limit {
+		      max_connections = 16
+		      lifetime = 0
+		      idle_timeout = 30
+		}
+	}
+
+	listen {
+		ipaddr = *
+		port = 0
+		type = acct
+		limit {
+		}
+	}
+
+	listen {
+		type = auth
+		ipv6addr = ::	# any.  ::1 == localhost
+		port = 0
+		limit {
+		      max_connections = 16
+		      lifetime = 0
+		      idle_timeout = 30
+		}
+	}
+
+	listen {
+		ipv6addr = ::
+		port = 0
+		type = acct
+		limit {
+		}
+	}
+
+	authorize {
+		filter_username
+		filter_password
+		preprocess
+		sql
+		pap
+	}
+
+
+	authenticate {
+		Auth-Type PAP {
+			pap
+		}
+	}
+
+
+	preacct {
+		update control {
+			Replicate-To-Realm := 'PROCERA'
+                }
+
+		acct_unique
+		preprocess
+		acct_counters64
+		suffix
+	}
+
+	accounting {
+		sql
+		sqlippool
+		update request {
+			Class := "%{sql:SELECT tradius_user.dpi FROM tradius_nas INNER JOIN tradius_virtual ON tradius_nas.virtual_id = tradius_virtual.id INNER JOIN tradius_user ON tradius_user.virtual_id = tradius_virtual.id WHERE tradius_user.username = '%{User-Name}' AND tradius_nas.server = '%{Packet-Src-IP-Address}' limit 1}"
+
+		}
+		attr_filter.accounting_response
+		replicate
+	}
+
+
+	session {
+		sql
+	}
+
+
+	post-auth {
+		sqlippool
+	}
+
+	pre-proxy {
+	}
+
+	post-proxy {
+	}
+}
