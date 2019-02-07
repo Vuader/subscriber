@@ -34,7 +34,7 @@ from luxon import render_template
 from luxon.utils.bootstrap4 import form
 
 from subscriber.lib.ops import ops
-from subscriber.ui.models.groups import tradius_group
+from subscriber.ui.models.radius.groups import tradius_group
 
 g.nav_menu.add('/Infrastructure/Radius/Groups',
                href='/infrastructure/radius/group',

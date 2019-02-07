@@ -34,7 +34,7 @@ from luxon import render_template
 from luxon.utils.bootstrap4 import form
 from luxon.utils.html5 import select
 
-from subscriber.ui.models.accounting import tradius_accounting
+from subscriber.ui.models.radius.accounting import tradius_accounting
 
 g.nav_menu.add('/Infrastructure/Radius/Sessions',
                href='/infrastructure/radius/sessions',
