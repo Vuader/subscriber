@@ -34,8 +34,8 @@ from luxon import render_template
 from luxon.utils.bootstrap4 import form
 from luxon.utils.html5 import select
 
-from tradius.ui.models.subscribers import tradius_subscriber
-from tradius.lib.ops import ops
+from subscriber.ui.models.subscribers import tradius_subscriber
+from subscriber.lib.ops import ops
 
 g.nav_menu.add('/Services/Subscribers',
                href='/services/radius',

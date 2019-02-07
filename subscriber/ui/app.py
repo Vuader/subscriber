@@ -1,3 +1,1 @@
-from tradius.ui import models
-from tradius.ui import views
-
+from subscriber.ui import views

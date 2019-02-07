@@ -33,7 +33,7 @@ from luxon import register
 from luxon import SQLModel
 from luxon.utils.timezone import now
 
-from subscribers.models.radius.groups import tradius_group
+from subscriber.models.radius.groups import tradius_group
 
 
 @register.model()
