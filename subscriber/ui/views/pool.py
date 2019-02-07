@@ -32,9 +32,8 @@ from luxon import router
 from luxon import register
 from luxon import render_template
 from luxon.utils.bootstrap4 import form
-from luxon.utils.html5 import select
 
-from tradius.ui.models.pool import tradius_pool
+from subscriber.ui.models.pool import tradius_pool
 
 g.nav_menu.add('/Infrastructure/Radius/IP Pool',
                href='/infrastructure/radius/pool',

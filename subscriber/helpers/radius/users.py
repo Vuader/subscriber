@@ -31,7 +31,7 @@
 from luxon import db
 from luxon.utils.sql import build_where
 
-from subscribers.helpers.coa import pod
+from subscriber.helpers.radius.coa import pod
 
 
 def disconnect(virtual_id, username=None):

@@ -33,13 +33,12 @@ from luxon.helpers.access import validate_access
 from luxon.helpers.api import raw_list, sql_list, obj
 from luxon.utils.hashing import md5sum
 
+from subscriber.lib.avps import avps
 from subscriber.models.radius.users import tradius_user
 from subscriber.models.radius.user_groups import tradius_user_group
 from subscriber.models.radius.user_attrs import tradius_user_attr
 from subscriber.helpers.radius.groups import get_user_groups
 from subscriber.helpers.radius.users import disconnect
-
-from tradius.lib.avps import avps
 
 from luxon import GetLogger
 
