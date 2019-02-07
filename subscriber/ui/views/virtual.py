@@ -33,7 +33,7 @@ from luxon import register
 from luxon import render_template
 from luxon.utils.bootstrap4 import form
 
-from subscriber.ui.models.virtual import tradius_virtual
+from subscriber.ui.models.radius.virtual import tradius_virtual
 
 g.nav_menu.add('/Infrastructure/Radius/Virtual',
                href='/infrastructure/radius/virtual',

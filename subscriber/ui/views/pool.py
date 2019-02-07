@@ -33,12 +33,13 @@ from luxon import register
 from luxon import render_template
 from luxon.utils.bootstrap4 import form
 
-from subscriber.ui.models.pool import tradius_pool
+from subscriber.ui.models.radius.pool import tradius_pool
 
 g.nav_menu.add('/Infrastructure/Radius/IP Pool',
                href='/infrastructure/radius/pool',
                tag='services:view',
                feather='list')
+
 
 @register.resources()
 class Pool():
@@ -116,7 +117,6 @@ class Pool():
             return render_template('tradius.ui/pool/add.html',
                                    view='Add Pool Authentication Service',
                                    form=html_form)
-
 
     def request(self, req, resp, id):
         data = {'name': req.form_dict.get('name'),

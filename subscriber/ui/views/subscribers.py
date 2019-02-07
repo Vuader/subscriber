@@ -32,9 +32,8 @@ from luxon import router
 from luxon import register
 from luxon import render_template
 from luxon.utils.bootstrap4 import form
-from luxon.utils.html5 import select
 
-from subscriber.ui.models.subscribers import tradius_subscriber
+from subscriber.ui.models.radius.subscribers import tradius_subscriber
 from subscriber.lib.ops import ops
 
 g.nav_menu.add('/Services/Subscribers',
@@ -84,7 +83,7 @@ class Subscribers():
                    tag='services:admin')
 
         router.add('GET', '/services/radius/rm_group/{user_id}/{group_id}',
-                   self.rm_group,                                                   
+                   self.rm_group,
                    tag='services:admin')
 
     def list(self, req, resp):
