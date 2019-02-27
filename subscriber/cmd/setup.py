@@ -36,6 +36,7 @@ from luxon import register
 @register.resource('system', '/setup')
 def setup(req, resp):
     module = Module('subscriber')
+    mkdir("/var/tachyonic")
     mkdir("/etc/tachyonic")
     mkdir("/etc/tachyonic/freeradius")
     mkdir("/etc/tachyonic/freeradius/proxy")
