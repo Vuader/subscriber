@@ -31,8 +31,8 @@ from luxon import register
 from luxon import router
 from luxon.helpers.api import obj, raw_list, search_params
 
-from subscriber.helpers.radius.accounting import get_cdr
-from subscriber.models.radius.accounting import tradius_accounting
+from subscriber.helpers.accounting import get_cdr
+from subscriber.models.accounting import subscriber_accounting
 
 
 @register.resources()
@@ -53,7 +53,7 @@ class Accounting(object):
 
         search = {}
         for field, value in search_params(req):
-            search['tradius_accounting.' + field] = value
+            search['subscriber_accounting.' + field] = value
 
         results = get_cdr(tenant_id=tenant_id,
                           domain=domain,
@@ -64,4 +64,4 @@ class Accounting(object):
         return raw_list(req, results, limit=limit, context=False, sql=True)
 
     def cdr(self, req, resp, id):
-        return obj(req, tradius_accounting, sql_id=id)
+        return obj(req, subscriber_accounting, sql_id=id)

@@ -29,7 +29,7 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 
 from luxon.core.handlers.wsgi import Wsgi
-application = Wsgi(__name__)
+application = Wsgi(__name__, ini='/etc/tachyonic/subscriber.ini')
 
 # This the place to start importing luxon packages/modules.
 import subscriber.app

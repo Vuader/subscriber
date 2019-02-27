@@ -31,13 +31,9 @@ from luxon import g
 from luxon import router
 from luxon import register
 from luxon import render_template
-from luxon.utils.bootstrap4 import form
-from luxon.utils.html5 import select
 
-from subscriber.ui.models.radius.accounting import tradius_accounting
-
-g.nav_menu.add('/Infrastructure/Radius/Sessions',
-               href='/infrastructure/radius/sessions',
+g.nav_menu.add('/Infrastructure/Subscriber/Sessions',
+               href='/infrastructure/subscriber/sessions',
                tag='services:view',
                feather='users')
 
@@ -46,20 +42,19 @@ g.nav_menu.add('/Infrastructure/Radius/Sessions',
 class Accounting():
     def __init__(self):
         router.add('GET',
-                   '/infrastructure/radius/sessions',
+                   '/infrastructure/subscriber/sessions',
                    self.list,
                    tag='services:view')
 
         router.add('GET',
-                   '/infrastructure/radius/pod/{acct_id}',
-                   self.pod,
+                   '/infrastructure/subscriber/disconnect/{acct_id}',
+                   self.disconnect,
                    tag='services:admin')
 
     def list(self, req, resp):
-        return render_template('tradius.ui/sessions/list.html',
-                               view='Radius Accounting')
+        return render_template('subscriber.ui/sessions/list.html',
+                               view='Subscriber Accounting')
 
-    def pod(self, req, resp, acct_id):
-       req.context.api.execute('PUT', '/v1/pod/%s' % acct_id,
-                        endpoint='radius')
-
+    def disconnect(self, req, resp, acct_id):
+        req.context.api.execute('PUT', '/v1/disconnect/%s' % acct_id,
+                                endpoint='subscriber')

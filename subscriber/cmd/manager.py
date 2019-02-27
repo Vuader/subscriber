@@ -1,123 +1,146 @@
-
-from uuid import uuid4
-import threading
+# -*- coding: utf-8 -*-
+# Copyright (c) 2018-2019 Christiaan Frans Rademan.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holders nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGE.
 import time
+from multiprocessing import Process, cpu_count
 
-from luxon.utils.system import execute
 from luxon import register
-from luxon import db
-from luxon.helpers.rmq import rmq
-from luxon import g
-from luxon.utils.sql import build_where
+from luxon import MBServer
+from luxon import MPLogger
+from luxon import GetLogger
+from luxon import dbw
+from luxon.utils.mysql import retry
 from luxon.exceptions import SQLIntegrityError
 from pyipcalc import IPNetwork
 
-from luxon import GetLogger
+from subscriber.msgbus.radius.acct import acct as radius_acct
 
 log = GetLogger(__name__)
 
 
-def action(ch, method, properties, msg):
-    with db() as conn:
-        if msg['type'] == 'append_pool':
-            name = msg['pool']['name']
-            prefix = msg['pool']['prefix']
-            domain = msg['pool']['domain']
+@retry()
+def purge_sessions():
+    log = MPLogger(__name__)
+    with dbw() as conn:
+        with conn.cursor() as crsr:
+            while True:
+                log.info('Purging old stop sessions')
+                crsr.execute("DELETE FROM subscriber_session WHERE" +
+                             " processed < (NOW() - INTERVAL 8 HOUR)" +
+                             " AND accttype = 'stop'")
+                crsr.commit()
+                time.sleep(60)
+
+
+@retry()
+def append_pool(msg):
+    log = MPLogger(__name__)
+
+    pool_id = msg['id']
+    prefix = msg['prefix']
+    with dbw() as conn:
+        with conn.cursor() as crsr:
             for ip in IPNetwork(prefix):
                 try:
-                    conn.execute('INSERT INTO tradius_ippool' +
-                                 ' (id, domain, pool_name, framedipaddress' +
-                                 ', nasipaddress, username, pool_key)' +
+                    crsr.execute('INSERT INTO subscriber_ippool' +
+                                 ' (id, pool_id, framedipaddress)' +
                                  ' VALUES' +
-                                 " (%s, %s, %s, %s, '', '', '')",
-                                 (str(uuid4()), domain, name, ip.first(),))
-                    conn.commit()
+                                 ' (uuid()), %s, %s)',
+                                 (pool_id, ip.first(),))
                 except SQLIntegrityError as e:
                     log.warning(e)
-        elif msg['type'] == 'delete_pool':
-            name = msg['pool']['name']
-            prefix = msg['pool']['prefix']
-            domain = msg['pool']['domain']
-            if prefix is None:
-                where = {'pool_name': name,
-                         'domain': domain}
-                where, values = build_where(**where)
-                sql = ('DELETE FROM tradius_ippool' +
-                       ' WHERE ')
-                sql += where
-                conn.execute(sql, values)
-                conn.commit()
-            else:
-                for ip in IPNetwork(prefix):
-                    where = {'pool_name': name,
-                             'domain': domain,
-                             'framedipaddress': ip.first()}
-                    where, values = build_where(**where)
-                    sql = ('DELETE FROM tradius_ippool' +
-                           ' WHERE ')
-                    sql += where
-                    conn.execute(sql, values)
-                    conn.commit()
-
-        elif msg['type'] == 'disconnect':
-            nas_ip = msg['session'].get('NAS-IP-Address')
-            result = conn.execute("SELECT * FROM tradius_nas" +
-                                  " WHERE server = %s",
-                                  nas_ip).fetchone()
-            if result:
-                secret_file = '%s/secret.tmp' % g.app.path
-                packet_file = '%s/packet.tmp' % g.app.path
-
-                with open('%s/secret.tmp' % g.app.path, 'w') as f:
-                    secret = result['secret']
-                    f.write(secret)
-
-                with open('%s/packet.tmp' % g.app.path, 'w') as f:
-                    for avp in msg['session']:
-                        f.write('%s = "%s"\n' % (avp, msg['session'][avp],))
-
-                if msg['type'] == 'disconnect':
-                    execute(['radclient',
-                             '-x', '%s:3799' % nas_ip,
-                             'disconnect', '-f',
-                             packet_file, '-S', secret_file],
-                            check=False)
+            crsr.commit()
 
 
-def coa_thread():
-    with rmq() as mb:
-        mb.receiver('subscriber', action)
+@retry()
+def delete_pool(msg):
+    log = MPLogger(__name__)
+
+    pool_id = msg['id']
+    prefix = msg['prefix']
+    with dbw() as conn:
+        with conn.cursor() as crsr:
+            for ip in IPNetwork(prefix):
+                try:
+                    conn.execute('DELETE FROM subscriber_ippool' +
+                                 ' WHERE pool_id = %s' +
+                                 ' and framedipaddress = %s',
+                                 (pool_id, ip.first(),))
+                except SQLIntegrityError as e:
+                    log.warning(e)
+            crsr.commit()
 
 
-def prune_thread():
-
-    with db() as conn:
-        while True:
-            try:
-                conn.execute('DELETE FROM tradius_accounting' +
-                             ' WHERE acctstarttime < NOW() - INTERVAL 7 DAY' +
-                             ' AND acctstoptime is NULL')
-                conn.commit()
-            except Exception as e:
-                log.warning(e)
-            time.sleep(60)
-
-
-@register.resource('radius', '/manager')
+@register.resource('system', '/manager')
 def manager(req, resp):
-    # Create new threads
     try:
-        threads = []
+        procs = []
+        mplog = MPLogger('__main__')
+        mplog.receive()
 
-        threads.append(threading.Thread(target=coa_thread))
-        threads.append(threading.Thread(target=prune_thread))
+        mb = MBServer('subscriber',
+                      {'radius_accounting': radius_acct,
+                       'append_pool': append_pool,
+                       'delete_pool': delete_pool},
+                      cpu_count() * 4,
+                      16)
+        mb.start()
 
-        for thread in threads:
-            thread.start()
+        # Additional processes
+        procs.append((Process(target=purge_sessions,
+                              name="session purger"),
+                      purge_sessions,))
 
-        for thread in threads:
-            thread.join()
+        for proc, target in procs:
+            proc.start()
 
-    except KeyboardInterrupt:
-        for thread in threads:
-            thread.join()
+        while True:
+            mb.check()
+            for process in procs:
+                proc, target = process
+                if not proc.is_alive():
+                    proc.join()
+                    procs.remove(process)
+                    new = Process(target=target,
+                                  name=proc.name,)
+                    log.critical('Restarting process %s' % proc.name)
+                    procs.append((new, target,))
+                    new.start()
+            time.sleep(10)
+
+        mplog.close()
+        mb.stop()
+
+    except (KeyboardInterrupt, SystemExit):
+        for proc, target in procs:
+            proc.terminate()
+
+        mb.stop()
+
+        mplog.close()
