@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018 Christiaan Frans Rademan.
+# Copyright (c) 2018-2019 Christiaan Frans Rademan.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,13 +32,12 @@ from luxon import router
 from luxon import register
 from luxon import render_template
 from luxon.utils.bootstrap4 import form
-from luxon.utils.html5 import select
 
-from subscriber.ui.models.radius.accounting import tradius_accounting
+from subscriber.ui.models.accounting import accounting
 
 
-g.nav_menu.add('/Infrastructure/Radius/Accounting',
-               href='/infrastructure/radius/accounting',
+g.nav_menu.add('/Infrastructure/Subscriber/Accounting',
+               href='/infrastructure/subscriber/accounting',
                tag='services:admin',
                feather='users')
 
@@ -47,23 +46,23 @@ g.nav_menu.add('/Infrastructure/Radius/Accounting',
 class Accounting():
     def __init__(self):
         router.add('GET',
-                   '/infrastructure/radius/accounting',
+                   '/infrastructure/subscriber/accounting',
                    self.list,
                    tag='services:admin')
 
         router.add('GET',
-                   '/infrastructure/radius/accounting/{id}',
+                   '/infrastructure/subscriber/accounting/{id}',
                    self.view,
                    tag='services:admin')
 
     def list(self, req, resp):
-        return render_template('tradius.ui/accounting/list.html',
-                               view='Radius Accounting')
+        return render_template('subscriber.ui/accounting/list.html',
+                               view='Subscriber Accounting')
 
     def view(self, req, resp, id):
         cdr = req.context.api.execute('GET', '/v1/accounting/%s' % id,
-                                       endpoint='radius')
-        html_form = form(tradius_accounting, cdr.json, readonly=True)
-        return render_template('tradius.ui/accounting/view.html',
+                                      endpoint='subscriber')
+        html_form = form(accounting, cdr.json, readonly=True)
+        return render_template('subscriber.ui/accounting/view.html',
                                form=html_form,
-                               view="Radius Accounting entry")
+                               view="Subscriber Accounting entry")

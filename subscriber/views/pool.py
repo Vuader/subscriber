@@ -29,12 +29,12 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 from luxon import register
 from luxon import router
+from luxon import MBClient
 from luxon.helpers.access import validate_access
 from luxon.helpers.api import sql_list, obj
-from luxon.helpers.rmq import rmq
 from pyipcalc import IPNetwork
 
-from subscriber.models.radius.pool import tradius_pool
+from subscriber.models.pool import subscriber_pool
 
 from luxon import GetLogger
 
@@ -63,70 +63,65 @@ class Pool(object):
                    tag='services')
 
     def pool(self, req, resp, id):
-        return obj(req, tradius_pool, sql_id=id,
+        return obj(req, subscriber_pool, sql_id=id,
                    hide=('password',))
 
     def pools(self, req, resp):
-        return sql_list(req, 'tradius_pool',
+        return sql_list(req, 'subscriber_pool',
                         ('id', 'pool_name',))
 
     def create(self, req, resp):
-        pool = obj(req, tradius_pool)
+        pool = obj(req, subscriber_pool)
         pool.commit()
         return pool
 
     def update(self, req, resp, id):
-        pool = obj(req, tradius_pool, sql_id=id)
+        pool = obj(req, subscriber_pool, sql_id=id)
         pool.commit()
         return pool
 
     def delete(self, req, resp, id):
-        pool = obj(req, tradius_pool, sql_id=id)
+        pool = obj(req, subscriber_pool, sql_id=id)
         pool.commit()
 
     def ips(self, req, resp, id):
-        pool = obj(req, tradius_pool, sql_id=id)
-        return sql_list(req, 'tradius_ippool', ('id', 'pool_name',
-                                                'framedipaddress',
-                                                'nasipaddress',
-                                                'expiry_time',
-                                                'username',),
+        pool = obj(req, subscriber_pool, sql_id=id)
+        return sql_list(req, 'subscriber_ippool',
+                        ('id',
+                         'framedipaddress',
+                         'nasipaddress',
+                         'expiry_time',
+                         'username',),
                         where={'pool_name': pool['pool_name']})
 
     def add_prefix(self, req, resp, id):
-        pool = tradius_pool()
+        pool = subscriber_pool()
         pool.sql_id(id)
         validate_access(req, pool)
-
-        prefix = IPNetwork(req.json['prefix']).prefix()
 
         if not req.json.get('prefix'):
             raise ValueError('Prefix Required')
 
-        with rmq() as mb:
-            message = {
-                'type': 'append_pool',
-                'pool': {'name': pool['pool_name'],
-                         'prefix': prefix,
-                         'domain': req.context_domain}
-            }
-            mb.distribute('tradius', **message)
+        prefix = IPNetwork(req.json['prefix']).prefix()
+
+        with MBClient('subscriber') as mb:
+            msg = {'id': pool['id'],
+                   'prefix': prefix,
+                   'domain': req.context_domain}
+            mb.send('append_pool', msg)
 
     def rm_prefix(self, req, resp, id):
-        pool = tradius_pool()
+        pool = subscriber_pool()
         pool.sql_id(id)
         validate_access(req, pool)
 
-        if req.json.get('prefix'):
-            prefix = IPNetwork(req.json['prefix']).prefix()
-        else:
-            prefix = None
+        if not req.json.get('prefix'):
+            raise ValueError('Prefix Required')
 
-        with rmq() as mb:
-            message = {
-                'type': 'delete_pool',
-                'pool': {'name': pool['pool_name'],
-                         'prefix': prefix,
-                         'domain': req.context_domain}
-            }
-            mb.distribute('tradius', **message)
+        prefix = IPNetwork(req.json['prefix']).prefix()
+
+        with MBClient('subscriber') as mb:
+            msg = {'id': pool['id'],
+                   'prefix': prefix,
+                   'domain': req.context_domain}
+            mb.send('delete_pool', msg)

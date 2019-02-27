@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018 Christiaan Frans Rademan.
+# Copyright (c) 2018-2019 Christiaan Frans Rademan.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,11 +33,10 @@ from luxon import register
 from luxon import render_template
 from luxon.utils.bootstrap4 import form
 
-from subscriber.ui.models.radius.subscribers import tradius_subscriber
-from subscriber.lib.ops import ops
+from subscriber.ui.models.subscribers import subscriber
 
 g.nav_menu.add('/Services/Subscribers',
-               href='/services/radius',
+               href='/services/subscribers',
                tag='services:view',
                feather='users')
 
@@ -46,59 +45,43 @@ g.nav_menu.add('/Services/Subscribers',
 class Subscribers():
     def __init__(self):
         router.add('GET',
-                   '/services/radius',
+                   '/services/subscribers',
                    self.list,
                    tag='services:view')
 
         router.add('GET',
-                   '/services/radius/{id}',
+                   '/services/subscriber/{id}',
                    self.view,
                    tag='services:view')
 
         router.add('GET',
-                   '/services/radius/delete/{id}',
+                   '/services/subscriber/delete/{id}',
                    self.delete,
                    tag='services:admin')
 
         router.add(('GET', 'POST',),
-                   '/services/radius/add',
+                   '/services/subscriber/add',
                    self.add,
                    tag='services:admin')
 
         router.add(('GET', 'POST',),
-                   '/services/radius/edit/{id}',
+                   '/services/subscriber/edit/{id}',
                    self.edit,
                    tag='services:admin')
 
-        router.add('POST', '/services/radius/add_attr/{user_id}',
-                   self.add_attr,
-                   tag='services:admin')
-
-        router.add('GET', '/services/radius/rm_attr/{user_id}/{attribute_id}',
-                   self.rm_attr,
-                   tag='services:admin')
-
-        router.add('POST', '/services/radius/add_group/{user_id}',
-                   self.add_group,
-                   tag='services:admin')
-
-        router.add('GET', '/services/radius/rm_group/{user_id}/{group_id}',
-                   self.rm_group,
-                   tag='services:admin')
-
     def list(self, req, resp):
-        return render_template('tradius.ui/radius/list.html',
+        return render_template('subscriber.ui/subscribers/list.html',
                                view='Subscribers')
 
     def delete(self, req, resp, id):
-        req.context.api.execute('DELETE', '/v1/user/%s' % id,
-                                endpoint='radius')
+        req.context.api.execute('DELETE', '/v1/subscriber/%s' % id,
+                                endpoint='subscriber')
 
     def view(self, req, resp, id):
-        user = req.context.api.execute('GET', '/v1/user/%s' % id,
-                                       endpoint='radius')
-        html_form = form(tradius_subscriber, user.json, readonly=True)
-        return render_template('tradius.ui/radius/view.html',
+        user = req.context.api.execute('GET', '/v1/subscriber/%s' % id,
+                                       endpoint='subscriber')
+        html_form = form(subscriber, user.json, readonly=True)
+        return render_template('subscriber.ui/subscribers/view.html',
                                form=html_form,
                                id=id,
                                view="View Subscriber")
@@ -106,48 +89,31 @@ class Subscribers():
     def edit(self, req, resp, id):
         if req.method == 'POST':
             data = req.form_dict
-            req.context.api.execute('PUT', '/v1/user/%s' % id,
+            req.context.api.execute('PUT', '/v1/subscriber/%s' % id,
                                     data=data,
-                                    endpoint='radius')
+                                    endpoint='subscriber')
             req.method = 'GET'
             return self.edit(req, resp, id)
         else:
-            user = req.context.api.execute('GET', '/v1/user/%s' % id,
-                                           endpoint='radius')
-            html_form = form(tradius_subscriber, user.json)
-            return render_template('tradius.ui/radius/edit.html',
-                                   form=html_form,
-                                   id=id,
-                                   ops=ops,
-                                   view="Edit Subscriber")
+            user = req.context.api.execute('GET',
+                                           '/v1/subscriber/%s' % id,
+                                           endpoint='subscriber')
+            html_form = form(subscriber, user.json)
+            return render_template(
+                'subscriber.ui/subscribers/edit.html',
+                form=html_form,
+                id=id,
+                view="Edit Subscriber")
 
     def add(self, req, resp):
         if req.method == 'POST':
             data = req.form_dict
-            response = req.context.api.execute('POST', '/v1/user',
+            response = req.context.api.execute('POST', '/v1/subscriber',
                                                data=data,
-                                               endpoint='radius')
+                                               endpoint='subscriber')
             return self.view(req, resp, response.json['id'])
         else:
-            html_form = form(tradius_subscriber)
-            return render_template('tradius.ui/radius/add.html',
+            html_form = form(subscriber)
+            return render_template('subscriber.ui/subscribers/add.html',
                                    view='Add Subscriber',
                                    form=html_form)
-
-    def add_group(self, req, resp, user_id):
-        uri = '/v1/user_group/%s' % user_id
-        response = req.context.api.execute('POST', uri, data=req.form_dict,
-                                           endpoint='radius')
-
-    def rm_group(self, req, resp, user_id, group_id):
-        uri = '/v1/user_group/%s/%s' % (user_id, group_id,)
-        response = req.context.api.execute('DELETE', uri, endpoint='radius')
-
-    def add_attr(self, req, resp, user_id):
-        uri = '/v1/user_attr/%s' % user_id
-        response = req.context.api.execute('POST', uri, data=req.form_dict,
-                                           endpoint='radius')
-
-    def rm_attr(self, req, resp, user_id, attribute_id):
-        uri = '/v1/user_attr/%s/%s' % (user_id, attribute_id,)
-        response = req.context.api.execute('DELETE', uri, endpoint='radius') 

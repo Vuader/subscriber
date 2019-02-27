@@ -33,10 +33,11 @@ from luxon import register
 from luxon import render_template
 from luxon.utils.bootstrap4 import form
 
-from subscriber.ui.models.radius.virtual import tradius_virtual
+from subscriber.ui.models.virtual import virtual
+from subscriber.lib.vendor import vendors
 
-g.nav_menu.add('/Infrastructure/Radius/Virtual',
-               href='/infrastructure/radius/virtual',
+g.nav_menu.add('/Infrastructure/Subscriber/Virtual',
+               href='/infrastructure/subscriber/virtual',
                tag='infrastructure:admin',
                feather='at-sign')
 
@@ -45,58 +46,58 @@ g.nav_menu.add('/Infrastructure/Radius/Virtual',
 class Virtual():
     def __init__(self):
         router.add('GET',
-                   '/infrastructure/radius/virtual',
+                   '/infrastructure/subscriber/virtual',
                    self.list,
                    tag='infrastructure:admin')
 
         router.add('GET',
-                   '/infrastructure/radius/virtual/{id}',
+                   '/infrastructure/subscriber/virtual/{id}',
                    self.view,
                    tag='infrastructure:admin')
 
         router.add('GET',
-                   '/infrastructure/radius/virtual/delete/{id}',
+                   '/infrastructure/subscriber/virtual/delete/{id}',
                    self.delete,
                    tag='infrastructure:admin')
 
         router.add(('GET', 'POST',),
-                   '/infrastructure/radius/virtual/add',
+                   '/infrastructure/subscriber/virtual/add',
                    self.add,
                    tag='infrastructure:admin')
 
         router.add(('GET', 'POST',),
-                   '/infrastructure/radius/virtual/edit/{id}',
+                   '/infrastructure/subscriber/virtual/edit/{id}',
                    self.edit,
                    tag='infrastructure:admin')
 
         router.add('POST',
-                   '/infrastructure/radius/virtual/add_nas/{id}',
+                   '/infrastructure/subscriber/virtual/add_nas/{id}',
                    self.add_nas,
                    tag='infrastructure:admin')
 
         router.add('GET',
-                   '/infrastructure/radius/virtual/rm_nas/{id}',
+                   '/infrastructure/subscriber/virtual/rm_nas/{id}',
                    self.rm_nas,
                    tag='infrastructure:admin')
 
         router.add('GET',
-                   '/infrastructure/radius/virtual/clear/{id}',
+                   '/infrastructure/subscriber/virtual/clear/{id}',
                    self.clear,
                    tag='infrastructure:admin')
 
     def list(self, req, resp):
-        return render_template('tradius.ui/virtual/list.html',
+        return render_template('subscriber.ui/virtual/list.html',
                                view='Virtual Authentication Sevices')
 
     def delete(self, req, resp, id):
         req.context.api.execute('DELETE', '/v1/virtual/%s' % id,
-                                endpoint='radius')
+                                endpoint='subscriber')
 
     def view(self, req, resp, id):
         vr = req.context.api.execute('GET', '/v1/virtual/%s' % id,
-                                     endpoint='radius')
-        html_form = form(tradius_virtual, vr.json, readonly=True)
-        return render_template('tradius.ui/virtual/view.html',
+                                     endpoint='subscriber')
+        html_form = form(virtual, vr.json, readonly=True)
+        return render_template('subscriber.ui/virtual/view.html',
                                view='View Virtual Authentication Service',
                                form=html_form,
                                id=id)
@@ -105,26 +106,28 @@ class Virtual():
         if req.method == 'POST':
             req.context.api.execute('PUT', '/v1/virtual/%s' % id,
                                     data=req.form_dict,
-                                    endpoint='radius')
+                                    endpoint='subscriber')
             return self.view(req, resp, id)
         else:
-            domain = req.context.api.execute('GET', '/v1/virtual/%s' % id,
-                                             endpoint='radius')
-            html_form = form(tradius_virtual, domain.json)
-            return render_template('tradius.ui/virtual/edit.html',
+            domain = req.context.api.execute('GET', '/v1/virtual/%s'
+                                             % id,
+                                             endpoint='subscriber')
+            html_form = form(virtual, domain.json)
+            return render_template('subscriber.ui/virtual/edit.html',
                                    view='Edit Virtual Authentication Service',
                                    form=html_form,
+                                   vendors=vendors,
                                    id=id)
 
     def add(self, req, resp):
         if req.method == 'POST':
             response = req.context.api.execute('POST', '/v1/virtual',
                                                data=req.form_dict,
-                                               endpoint='radius')
+                                               endpoint='subscriber')
             return self.view(req, resp, response.json['id'])
         else:
-            html_form = form(tradius_virtual)
-            return render_template('tradius.ui/virtual/add.html',
+            html_form = form(virtual)
+            return render_template('subscriber.ui/virtual/add.html',
                                    view='Add Virtual Authentication Service',
                                    form=html_form)
 
@@ -133,13 +136,13 @@ class Virtual():
 
         uri = '/v1/virtual/%s/nas' % id
 
-        response = req.context.api.execute('POST', uri, data=data,
-                                           endpoint='radius')
+        req.context.api.execute('POST', uri, data=data,
+                                endpoint='subscriber')
 
     def rm_nas(self, req, resp, id):
         uri = '/v1/virtual/%s/nas' % id
-        response = req.context.api.execute('DELETE', uri, endpoint='radius')  
+        req.context.api.execute('DELETE', uri, endpoint='subscriber')
 
     def clear(self, req, resp, id):
         uri = '/v1/clear/%s' % id
-        response = req.context.api.execute('PUT', uri, endpoint='radius')  
+        req.context.api.execute('PUT', uri, endpoint='subscriber')

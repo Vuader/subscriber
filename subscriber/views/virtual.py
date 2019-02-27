@@ -31,8 +31,8 @@ from luxon import register
 from luxon import router
 from luxon.helpers.api import sql_list, obj
 
-from subscriber.models.radius.virtual import tradius_virtual
-from subscriber.models.radius.nas import tradius_nas
+from subscriber.models.virtual import subscriber_virtual
+from subscriber.models.nas import subscriber_nas
 
 from luxon import GetLogger
 
@@ -62,39 +62,39 @@ class Virtual(object):
                    tag='infrastructure:admin')
 
     def virtual(self, req, resp, id):
-        return obj(req, tradius_virtual, sql_id=id,
+        return obj(req, subscriber_virtual, sql_id=id,
                    hide=('password',))
 
     def virtuals(self, req, resp):
-        return sql_list(req, 'tradius_virtual',
+        return sql_list(req, 'subscriber_virtual',
                         ('id', 'domain', 'name',))
 
     def create(self, req, resp):
-        virtual = obj(req, tradius_virtual)
+        virtual = obj(req, subscriber_virtual)
         virtual.commit()
         return virtual
 
     def update(self, req, resp, id):
-        virtual = obj(req, tradius_virtual, sql_id=id)
+        virtual = obj(req, subscriber_virtual, sql_id=id)
         virtual.commit()
         return virtual
 
     def delete(self, req, resp, id):
-        virtual = obj(req, tradius_virtual, sql_id=id)
+        virtual = obj(req, subscriber_virtual, sql_id=id)
         virtual.commit()
 
     def nas(self, req, resp, id):
         where = {'virtual_id': id}
-        return sql_list(req, 'tradius_nas',
+        return sql_list(req, 'subscriber_nas',
                         ('id', 'name', 'server',
                          'nas_type', 'secret'), where=where)
 
     def add_nas(self, req, resp, id):
-        virtual = obj(req, tradius_nas)
+        virtual = obj(req, subscriber_nas)
         virtual['virtual_id'] = id
         virtual.commit()
         return virtual
 
     def rm_nas(self, req, resp, id):
-        virtual = obj(req, tradius_nas, sql_id=id)
+        virtual = obj(req, subscriber_nas, sql_id=id)
         virtual.commit()

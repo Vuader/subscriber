@@ -1,10 +1,10 @@
 {% extends "photonic/view.html" %}
 {% block content %}
-<table class="display" data-endpoint='radius' data-url="/v1/pool" width="100%">
+<table class="display" data-endpoint='subscriber' data-url="/v1/pool" width="100%">
     <thead>
         <tr>
             <th id='pool_name'>Name</th>
-            <th data-href="/infrastructure/radius/pool" data-modal width="2rem">
+            <th data-href="/infrastructure/subscriber/pool" data-modal width="2rem">
                 <span data-feather="edit"></span>
             </th>
         </tr>
@@ -12,5 +12,5 @@
 </table>
 {% endblock %}
 {% block buttons %}
-<a class="btn btn-primary" data-modal href="{{APP}}/infrastructure/radius/pool/add">Add Pool</a>
+<a class="btn btn-primary" data-modal href="{{APP}}/infrastructure/subscriber/pool/add">Add Pool</a>
 {% endblock %}

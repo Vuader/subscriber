@@ -33,10 +33,10 @@ from luxon import register
 from luxon import render_template
 from luxon.utils.bootstrap4 import form
 
-from subscriber.ui.models.radius.pool import tradius_pool
+from subscriber.ui.models.pool import pool
 
-g.nav_menu.add('/Infrastructure/Radius/IP Pool',
-               href='/infrastructure/radius/pool',
+g.nav_menu.add('/Infrastructure/Subscriber/IP Pool',
+               href='/infrastructure/subscriber/pool',
                tag='services:view',
                feather='list')
 
@@ -45,49 +45,49 @@ g.nav_menu.add('/Infrastructure/Radius/IP Pool',
 class Pool():
     def __init__(self):
         router.add('GET',
-                   '/infrastructure/radius/pool',
+                   '/infrastructure/subscriber/pool',
                    self.list,
                    tag='services')
 
         router.add('GET',
-                   '/infrastructure/radius/pool/{id}',
+                   '/infrastructure/subscriber/pool/{id}',
                    self.view,
                    tag='services')
 
         router.add('GET',
-                   '/infrastructure/radius/pool/delete/{id}',
+                   '/infrastructure/subscriber/pool/delete/{id}',
                    self.delete,
                    tag='services')
 
         router.add(('GET', 'POST',),
-                   '/infrastructure/radius/pool/add',
+                   '/infrastructure/subscriber/pool/add',
                    self.add,
                    tag='services')
 
         router.add(('GET', 'POST',),
-                   '/infrastructure/radius/pool/edit/{id}',
+                   '/infrastructure/subscriber/pool/edit/{id}',
                    self.edit,
                    tag='services')
 
         router.add('POST',
-                   '/infrastructure/radius/pool/request/{id}',
+                   '/infrastructure/subscriber/pool/request/{id}',
                    self.request,
                    tag='services')
 
     def list(self, req, resp):
-        return render_template('tradius.ui/pool/list.html',
-                               view='IP Pools')
+        return render_template('subscriber.ui/pool/list.html',
+                               view='Subscriber IP Pools')
 
     def delete(self, req, resp, id):
         req.context.api.execute('DELETE', '/v1/pool/%s' % id,
-                                endpoint='radius')
+                                endpoint='subscriber')
 
     def view(self, req, resp, id):
         vr = req.context.api.execute('GET', '/v1/pool/%s' % id,
-                                     endpoint='radius')
-        html_form = form(tradius_pool, vr.json, readonly=True)
-        return render_template('tradius.ui/pool/view.html',
-                               view='View Pool Authentication Service',
+                                     endpoint='subscriber')
+        html_form = form(pool, vr.json, readonly=True)
+        return render_template('subscriber.ui/pool/view.html',
+                               view='Subscriber IP Pool',
                                form=html_form,
                                id=id)
 
@@ -95,14 +95,15 @@ class Pool():
         if req.method == 'POST':
             req.context.api.execute('PUT', '/v1/pool/%s' % id,
                                     data=req.form_dict,
-                                    endpoint='radius')
+                                    endpoint='subscriber')
             return self.view(req, resp, id)
         else:
-            domain = req.context.api.execute('GET', '/v1/pool/%s' % id,
-                                             endpoint='radius')
-            html_form = form(tradius_pool, domain.json)
-            return render_template('tradius.ui/pool/edit.html',
-                                   view='Edit Pool Authentication Service',
+            domain = req.context.api.execute('GET',
+                                             '/v1/pool/%s' % id,
+                                             endpoint='subscriber')
+            html_form = form(pool, domain.json)
+            return render_template('subscriber.ui/pool/edit.html',
+                                   view='Edit Subscriber IP Pool',
                                    form=html_form,
                                    id=id)
 
@@ -110,22 +111,25 @@ class Pool():
         if req.method == 'POST':
             response = req.context.api.execute('POST', '/v1/pool',
                                                data=req.form_dict,
-                                               endpoint='radius')
+                                               endpoint='subscriber')
             return self.view(req, resp, response.json['id'])
         else:
-            html_form = form(tradius_pool)
-            return render_template('tradius.ui/pool/add.html',
-                                   view='Add Pool Authentication Service',
+            html_form = form(pool)
+            return render_template('subscriber.ui/pool/add.html',
+                                   view='Add Subscriber IP Pool',
                                    form=html_form)
 
     def request(self, req, resp, id):
         data = {'name': req.form_dict.get('name'),
                 'prefix': req.form_dict.get('prefix')}
         if req.form_dict['request'] == 'add':
-            req.context.api.execute('POST', '/v1/pool/%s/add_prefix' % id,
-                                    endpoint='radius',
+            req.context.api.execute('POST', '/v1/pool/%s/add_prefix'
+                                    % id,
+                                    endpoint='subscriber',
                                     data=data)
         if req.form_dict['request'] == 'remove':
-            req.context.api.execute('DELETE', '/v1/pool/%s/rm_prefix' % id,
-                                    endpoint='radius',
+            req.context.api.execute('DELETE',
+                                    '/v1/pool/%s/rm_prefix'
+                                    % id,
+                                    endpoint='subscriber',
                                     data=data)
