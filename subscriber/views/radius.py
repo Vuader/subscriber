@@ -29,45 +29,19 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 from luxon import register
 from luxon import router
-from luxon.helpers.api import raw_list, search_params
+from luxon.helpers.api import raw_list
+from luxon import GetLogger
 
-from subscriber.helpers.sessions import disconnect as disc
-from subscriber.helpers.sessions import clear
-from subscriber.helpers.accounting import get_cdr
+from subscriber.lib.radius.avps import avps
+
+log = GetLogger(__name__)
 
 
 @register.resources()
-class Accounting(object):
+class Radius(object):
     def __init__(self):
-        # Services Users
-        router.add('GET', '/v1/sessions', self.sessions,
-                   tag='services:view')
-        router.add('PUT', '/v1/disconnect/{acct_id}', self.disconnect,
-                   tag='services:admin')
-        router.add('PUT', '/v1/clear/{nas_id}', self.clear,
-                   tag='services:admin')
+        router.add('GET', '/v1/radius/avps', self.avps,
+                   tag='login')
 
-    def sessions(self, req, resp):
-        limit = int(req.query_params.get('limit', 10))
-        page = int(req.query_params.get('page', 1))
-
-        domain = req.context_domain
-
-        search = {}
-        for field, value in search_params(req):
-            search['tradius_accounting.' + field] = value
-
-        results = get_cdr(domain=domain,
-                          page=page,
-                          limit=limit * 2,
-                          search=search,
-                          session=True)
-
-        return raw_list(req, results, limit=limit, context=False, sql=True)
-
-    def disconnect(self, req, resp, acct_id):
-        return True 
-        disc(acct_id)
-
-    def clear(self, req, resp, nas_id):
-        clear(nas_id)
+    def avps(self, req, resp):
+        return raw_list(req, avps)

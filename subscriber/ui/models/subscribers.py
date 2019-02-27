@@ -27,47 +27,22 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
-from luxon import register
-from luxon import router
-from luxon.helpers.api import raw_list, search_params
+from luxon import Model
+from luxon.utils.timezone import now
 
-from subscriber.helpers.sessions import disconnect as disc
-from subscriber.helpers.sessions import clear
-from subscriber.helpers.accounting import get_cdr
+from subscriber.ui.helpers.package import package
 
 
-@register.resources()
-class Accounting(object):
-    def __init__(self):
-        # Services Users
-        router.add('GET', '/v1/sessions', self.sessions,
-                   tag='services:view')
-        router.add('PUT', '/v1/disconnect/{acct_id}', self.disconnect,
-                   tag='services:admin')
-        router.add('PUT', '/v1/clear/{nas_id}', self.clear,
-                   tag='services:admin')
-
-    def sessions(self, req, resp):
-        limit = int(req.query_params.get('limit', 10))
-        page = int(req.query_params.get('page', 1))
-
-        domain = req.context_domain
-
-        search = {}
-        for field, value in search_params(req):
-            search['tradius_accounting.' + field] = value
-
-        results = get_cdr(domain=domain,
-                          page=page,
-                          limit=limit * 2,
-                          search=search,
-                          session=True)
-
-        return raw_list(req, results, limit=limit, context=False, sql=True)
-
-    def disconnect(self, req, resp, acct_id):
-        return True 
-        disc(acct_id)
-
-    def clear(self, req, resp, nas_id):
-        clear(nas_id)
+class subscriber(Model):
+    package_id = Model.Uuid(null=False, callback=package)
+    username = Model.Username(placeholder="john", max_length=100, null=False)
+    password = Model.Password(max_length=100, null=True, ignore_null=True)
+    email = Model.Email(placeholder="john.doe@acmecorp.org", max_length=255)
+    name = Model.String(placeholder="John Doe", max_length=100)
+    phone_mobile = Model.Phone(placeholder="+1-202-555-0103")
+    phone_office = Model.Phone(placeholder="+1-202-555-0105")
+    designation = Model.Enum('', 'Mr', 'Mrs', 'Ms', 'Dr', 'Prof')
+    enabled = Model.Boolean(default=True)
+    package_expire = Model.DateTime(null=True)
+    volume_expire = Model.DateTime(null=True)
+    creation_time = Model.DateTime(default=now, readonly=True)

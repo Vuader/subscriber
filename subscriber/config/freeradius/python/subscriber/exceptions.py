@@ -1,5 +1,6 @@
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018-2019 Christiaan Frans Rademan.
+# Copyright (c) 2018-2019 Christiaan Frans Rademan, Dave Kruger.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,47 +28,16 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
-from luxon import register
-from luxon import router
-from luxon.helpers.api import raw_list, search_params
 
-from subscriber.helpers.sessions import disconnect as disc
-from subscriber.helpers.sessions import clear
-from subscriber.helpers.accounting import get_cdr
+class Error(Exception):
+    """BaseException
+    """
 
 
-@register.resources()
-class Accounting(object):
-    def __init__(self):
-        # Services Users
-        router.add('GET', '/v1/sessions', self.sessions,
-                   tag='services:view')
-        router.add('PUT', '/v1/disconnect/{acct_id}', self.disconnect,
-                   tag='services:admin')
-        router.add('PUT', '/v1/clear/{nas_id}', self.clear,
-                   tag='services:admin')
+class MessageBusError(Error):
+    """Execute Error.
 
-    def sessions(self, req, resp):
-        limit = int(req.query_params.get('limit', 10))
-        page = int(req.query_params.get('page', 1))
-
-        domain = req.context_domain
-
-        search = {}
-        for field, value in search_params(req):
-            search['tradius_accounting.' + field] = value
-
-        results = get_cdr(domain=domain,
-                          page=page,
-                          limit=limit * 2,
-                          search=search,
-                          session=True)
-
-        return raw_list(req, results, limit=limit, context=False, sql=True)
-
-    def disconnect(self, req, resp, acct_id):
-        return True 
-        disc(acct_id)
-
-    def clear(self, req, resp, nas_id):
-        clear(nas_id)
+    Execute of command returned non-zero exit status.
+    """
+    def __init__(self, msg):
+        super(MessageBusError, self).__init__(str(msg))

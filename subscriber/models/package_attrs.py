@@ -27,47 +27,23 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
+from uuid import uuid4
+
 from luxon import register
-from luxon import router
-from luxon.helpers.api import raw_list, search_params
+from luxon import SQLModel
+from luxon.utils.timezone import now
 
-from subscriber.helpers.sessions import disconnect as disc
-from subscriber.helpers.sessions import clear
-from subscriber.helpers.accounting import get_cdr
+from subscriber.models.packages import subscriber_package
 
 
-@register.resources()
-class Accounting(object):
-    def __init__(self):
-        # Services Users
-        router.add('GET', '/v1/sessions', self.sessions,
-                   tag='services:view')
-        router.add('PUT', '/v1/disconnect/{acct_id}', self.disconnect,
-                   tag='services:admin')
-        router.add('PUT', '/v1/clear/{nas_id}', self.clear,
-                   tag='services:admin')
-
-    def sessions(self, req, resp):
-        limit = int(req.query_params.get('limit', 10))
-        page = int(req.query_params.get('page', 1))
-
-        domain = req.context_domain
-
-        search = {}
-        for field, value in search_params(req):
-            search['tradius_accounting.' + field] = value
-
-        results = get_cdr(domain=domain,
-                          page=page,
-                          limit=limit * 2,
-                          search=search,
-                          session=True)
-
-        return raw_list(req, results, limit=limit, context=False, sql=True)
-
-    def disconnect(self, req, resp, acct_id):
-        return True 
-        disc(acct_id)
-
-    def clear(self, req, resp, nas_id):
-        clear(nas_id)
+@register.model()
+class subscriber_package_attr(SQLModel):
+    id = SQLModel.Uuid(default=uuid4, internal=True)
+    package_id = SQLModel.Uuid()
+    attribute = SQLModel.String()
+    value = SQLModel.String()
+    ctx = SQLModel.String()
+    nas_type = SQLModel.String(max_length=64, null=False)
+    creation_time = SQLModel.DateTime(readonly=True, default=now)
+    pkg_attr_ref = SQLModel.ForeignKey(package_id, subscriber_package.id)
+    primary_key = id
