@@ -28,46 +28,37 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
 from luxon import register
-from luxon import router
-from luxon.helpers.api import raw_list, search_params
+from luxon import SQLModel
+from luxon.utils.timezone import now
 
-from subscriber.helpers.sessions import disconnect as disc
-from subscriber.helpers.sessions import clear
-from subscriber.helpers.accounting import get_cdr
+from uuid import uuid4
+from subscriber.models.packages import subscriber_package
 
 
-@register.resources()
-class Accounting(object):
-    def __init__(self):
-        # Services Users
-        router.add('GET', '/v1/sessions', self.sessions,
-                   tag='services:view')
-        router.add('PUT', '/v1/disconnect/{acct_id}', self.disconnect,
-                   tag='services:admin')
-        router.add('PUT', '/v1/clear/{nas_id}', self.clear,
-                   tag='services:admin')
-
-    def sessions(self, req, resp):
-        limit = int(req.query_params.get('limit', 10))
-        page = int(req.query_params.get('page', 1))
-
-        domain = req.context_domain
-
-        search = {}
-        for field, value in search_params(req):
-            search['tradius_accounting.' + field] = value
-
-        results = get_cdr(domain=domain,
-                          page=page,
-                          limit=limit * 2,
-                          search=search,
-                          session=True)
-
-        return raw_list(req, results, limit=limit, context=False, sql=True)
-
-    def disconnect(self, req, resp, acct_id):
-        return True 
-        disc(acct_id)
-
-    def clear(self, req, resp, nas_id):
-        clear(nas_id)
+@register.model()
+class subscriber(SQLModel):
+    id = SQLModel.Uuid(default=uuid4, internal=True)
+    package_id = SQLModel.Uuid()
+    domain = SQLModel.Fqdn(internal=True)
+    tenant_id = SQLModel.Uuid(internal=True)
+    username = SQLModel.Username(max_length=64, null=False)
+    password = SQLModel.Password(max_length=150, null=True)
+    email = SQLModel.Email(max_length=100)
+    name = SQLModel.String(max_length=64)
+    phone_mobile = SQLModel.Phone()
+    phone_office = SQLModel.Phone()
+    designation = SQLModel.Enum('', 'Mr', 'Mrs', 'Ms', 'Dr', 'Prof')
+    static_ip4 = SQLModel.String(null=True, max_length=64)
+    ctx = SQLModel.SmallInt(null=False, default=0)
+    notified = SQLModel.Boolean(null=False, default=True)
+    enabled = SQLModel.Boolean(default=True)
+    creation_time = SQLModel.DateTime(null=False, default=now, readonly=True)
+    volume_expire = SQLModel.DateTime(null=False, default=now)
+    package_expire = SQLModel.DateTime(default=now)
+    volume_used_bytes = SQLModel.BigInt(null=False, signed=False, default=0)
+    volume_used = SQLModel.Boolean(null=False, default=False)
+    subscriber_unique = SQLModel.UniqueIndex(username, domain)
+    subscriber_pkg_ref = SQLModel.ForeignKey(package_id,
+                                             subscriber_package.id,
+                                             on_delete='RESTRICT')
+    primary_key = id

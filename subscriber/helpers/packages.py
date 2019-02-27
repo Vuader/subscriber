@@ -27,47 +27,36 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
-from luxon import register
-from luxon import router
-from luxon.helpers.api import raw_list, search_params
 
-from subscriber.helpers.sessions import disconnect as disc
-from subscriber.helpers.sessions import clear
-from subscriber.helpers.accounting import get_cdr
+from luxon import db
+from luxon.utils.timezone import now, add_date
 
 
-@register.resources()
-class Accounting(object):
-    def __init__(self):
-        # Services Users
-        router.add('GET', '/v1/sessions', self.sessions,
-                   tag='services:view')
-        router.add('PUT', '/v1/disconnect/{acct_id}', self.disconnect,
-                   tag='services:admin')
-        router.add('PUT', '/v1/clear/{nas_id}', self.clear,
-                   tag='services:admin')
+def calc_next_expire(metric, span, expired=None):
+    if expired is None:
+        expired = now()
 
-    def sessions(self, req, resp):
-        limit = int(req.query_params.get('limit', 10))
-        page = int(req.query_params.get('page', 1))
+    if metric == 'days':
+        new_expire = add_date(expired,
+                              days=span)
+        return new_expire
 
-        domain = req.context_domain
+    elif metric == 'weeks':
+        new_expire = add_date(expired,
+                              weeks=span)
+        return new_expire
 
-        search = {}
-        for field, value in search_params(req):
-            search['tradius_accounting.' + field] = value
+    elif metric == 'months':
+        new_expire = add_date(expired,
+                              months=span)
+        return new_expire
 
-        results = get_cdr(domain=domain,
-                          page=page,
-                          limit=limit * 2,
-                          search=search,
-                          session=True)
+    else:
+        return expired
 
-        return raw_list(req, results, limit=limit, context=False, sql=True)
 
-    def disconnect(self, req, resp, acct_id):
-        return True 
-        disc(acct_id)
-
-    def clear(self, req, resp, nas_id):
-        clear(nas_id)
+def get_package(package_id):
+    with db() as conn:
+        query = 'SELECT * FROM subscriber_package where id = %s'
+        crsr = conn.execute(query, package_id)
+        return crsr.fetchone()

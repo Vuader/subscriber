@@ -28,46 +28,45 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
 from luxon import register
-from luxon import router
-from luxon.helpers.api import raw_list, search_params
+from luxon import GetLogger
+from luxon.utils.system import execute
 
-from subscriber.helpers.sessions import disconnect as disc
-from subscriber.helpers.sessions import clear
-from subscriber.helpers.accounting import get_cdr
+log = GetLogger(__name__)
 
 
-@register.resources()
-class Accounting(object):
-    def __init__(self):
-        # Services Users
-        router.add('GET', '/v1/sessions', self.sessions,
-                   tag='services:view')
-        router.add('PUT', '/v1/disconnect/{acct_id}', self.disconnect,
-                   tag='services:admin')
-        router.add('PUT', '/v1/clear/{nas_id}', self.clear,
-                   tag='services:admin')
+@register.resource('radius', '/start')
+def start(req, resp):
+    try:
+        execute(['pkill', '-9', 'freeradius'])
+    except Exception:
+        print('Failed to kill FreeRadius')
 
-    def sessions(self, req, resp):
-        limit = int(req.query_params.get('limit', 10))
-        page = int(req.query_params.get('page', 1))
+    try:
+        execute(['freeradius',
+                 '-d', '/etc/tachyonic/freeradius',
+                 '-n', 'proxy'])
+    except Exception:
+        print('Failed to start FreeRadius Proxy')
 
-        domain = req.context_domain
+    for i in range(6):
+        try:
+            execute(['freeradius',
+                     '-d', '/etc/tachyonic/freeradius',
+                     '-n', 'auth%s' % str(i+1)])
+        except Exception:
+            print('Failed to start FreeRadius Auth%s' % str(i+1))
 
-        search = {}
-        for field, value in search_params(req):
-            search['tradius_accounting.' + field] = value
+        try:
+            execute(['freeradius',
+                     '-d', '/etc/tachyonic/freeradius',
+                     '-n', 'acct%s' % str(i+1)])
+        except Exception:
+            print('Failed to start FreeRadius Acct%s' % str(i+1))
 
-        results = get_cdr(domain=domain,
-                          page=page,
-                          limit=limit * 2,
-                          search=search,
-                          session=True)
 
-        return raw_list(req, results, limit=limit, context=False, sql=True)
-
-    def disconnect(self, req, resp, acct_id):
-        return True 
-        disc(acct_id)
-
-    def clear(self, req, resp, nas_id):
-        clear(nas_id)
+@register.resource('radius', '/stop')
+def stop(req, resp):
+    try:
+        execute(['pkill', '-9', 'freeradius'])
+    except Exception:
+        print('Failed to kill FreeRadius')
