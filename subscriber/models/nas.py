@@ -40,7 +40,8 @@ from subscriber.models.virtual import subscriber_virtual
 class subscriber_nas(SQLModel):
     id = SQLModel.Uuid(default=uuid4, internal=True)
     virtual_id = SQLModel.Uuid(internal=True)
-    name = SQLModel.Word(max_length=64, null=False)
+    name = SQLModel.Word(max_length=64, null=False,
+                         regex=r'^[a-z0-9\._-]+$')
     nas_type = SQLModel.String(max_length=64, null=False)
     secret = SQLModel.String(max_length=64, null=False)
     server = SQLModel.String(max_length=64, null=False)

@@ -96,6 +96,7 @@ def do_acct(db, fr, dt, user, status):
             ######################################################
             crsr.execute("INSERT INTO subscriber_session" +
                          " (id," +
+                         " user_id," +
                          " acctsessionid," +
                          " acctuniqueid," +
                          " nasipaddress," +
@@ -114,7 +115,7 @@ def do_acct(db, fr, dt, user, status):
                          " processed," +
                          " accttype)" +
                          " VALUES" +
-                         " (uuid(), %s, %s, %s, %s, %s, %s, %s," +
+                         " (uuid(), %s, %s, %s, %s, %s, %s, %s, %s," +
                          " %s, %s, %s, %s, %s, %s, %s, %s, now(), %s)" +
                          " ON DUPLICATE KEY UPDATE" +
                          " acctsessionid = %s," +
@@ -132,7 +133,8 @@ def do_acct(db, fr, dt, user, status):
                          " acctupdated = %s," +
                          " processed = now()," +
                          " accttype = %s",
-                         (nas_session_id,
+                         (user_id,
+                          nas_session_id,
                           unique_session_id,
                           fr['NAS-IP-Address'],
                           fr.get('NAS-Port-ID'),

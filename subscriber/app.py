@@ -31,7 +31,6 @@ from luxon import register
 import luxon.resources.wsgi.index
 
 from psychokinetic.middleware.client import Client
-import psychokinetic.utils.gclient
 
 import subscriber.models
 import subscriber.views
