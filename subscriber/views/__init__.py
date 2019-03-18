@@ -5,3 +5,4 @@ from subscriber.views import packages
 from subscriber.views import pool
 from subscriber.views import subscribers
 from subscriber.views import radius
+from subscriber.views import subscriber_topups

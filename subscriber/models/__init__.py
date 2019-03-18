@@ -7,4 +7,4 @@ import subscriber.models.nas
 import subscriber.models.subscribers
 import subscriber.models.accounting
 import subscriber.models.sessions
-import subscriber.models.subscriber_topsups
+import subscriber.models.subscriber_topups
